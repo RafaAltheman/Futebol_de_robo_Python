@@ -1,7 +1,7 @@
 from math import sqrt
 import matplotlib.pyplot as plt
 
-# funções base
+# função para formatar a tabela com as informações da trajetória da bola em listas
 def processar_arquivo(nome_arquivo):
     with open(nome_arquivo, 'r') as arquivo:
 
@@ -17,21 +17,7 @@ def processar_arquivo(nome_arquivo):
 
         print(resultado)
 
-def calcular_bhaskara(a, b, c):
-    delta = b**2 - 4*a*c
-    if delta > 0:
-    
-        x1 = (-b + sqrt(delta)) / (2*a)
-        x2 = (-b - sqrt(delta)) / (2*a)
-    
-        if x1 > 0:
-            return x1
-        if x2 > 0:
-            return x2
-        else:
-            return (x1, x2)
-
-# uso da função para transformar a tabela x/y/t em listas separadas
+# uso da função
 # processar_arquivo('numerosY')
 # processar_arquivo('numerosX')
 # processar_arquivo('tempo')
@@ -287,153 +273,216 @@ y = [0.5, 0.517992, 0.535968, 0.553928, 0.571872, 0.5898, 0.607712, 0.625608, 0.
      10.493928, 10.495968, 10.497992, 10.5]
 
 
-v = 2.95
-a = 2.95
-raio_bola = 0.015
+raio_bola = 0.0105
 raio_robo = 0.075
+raio_intercep = raio_bola + raio_robo
 
 x_robo = float(input("Digite a posicao X do robo: "))
 y_robo = float(input("Digite a posicao Y do robo: "))
 
-menor = 100000000000
+menor = 1000000000
 indice_coordenada_x_próxima = 0
 coordenada_mais_próxima = (0, 0)
+a = 2.8
+tempos_que_passarao = [] # ate a interceptação
 
-# Loop para encontrar a coordenada mais próxima e o tempo correspondente
+# loop para encontrar a primeira coordenada na qual o robô consegue interceptar a bola dentro do tempo
 for i in range(len(x)):
     x_bola = x[i]
     y_bola = y[i]
-    distância = sqrt((x_robo - x_bola) ** 2 + (y_robo - y_bola) ** 2)
+    t_bola = t[i]
+    distancia = sqrt((x_robo - x_bola) ** 2 + (y_robo - y_bola) ** 2)
+    dist_real = distancia + raio_intercep
+    tempo_menor_dist = sqrt(dist_real / (0.5*a))
+    tempos_que_passarao.append(t_bola)
 
-    if distância < menor:
-        menor = distância
+    if tempo_menor_dist < t_bola: # se o robô chega a tempo de encontrar com a bola
+        menor = distancia
         coordenada_x_próxima = x_bola
         coordenada_y_próxima = y_bola
         índice_da_coordenada_mais_próxima = i
+        break
 
 tempo_correspondente = t[índice_da_coordenada_mais_próxima]
 
-print("\nCoordenada X da bola mais proxima do robo:", coordenada_x_próxima)
-print("\nCoordenada Y da bola mais proxima do robo:", coordenada_y_próxima)
+print("\n1ª coordenada X da bola que o robo consegue interceptar:", coordenada_x_próxima)
+print("\n1ª coordenada Y da bola que o robo consegue interceptar:", coordenada_y_próxima)
 print("\nTempo em que a bola passara por esta coordenada: " + str(tempo_correspondente) + "s")
-print("\nMenor distancia que o robo percorrera para alcançar a bola (entre o centro da bola e o centro do robo):", menor)
-
-# calcular o tempo que o robo chega na bola considerando o raio de interceptação
-raio_intercep = 0.0999
-
-dist_real = menor + raio_intercep
+print("\nDistancia que o robo percorrera para alcançar a bola (entre o centro da bola e o centro do robo):", menor)
 print("\nDistancia considerando o raio de interceptacao:", dist_real)
-
-# calcular o tempo que o robo vai realizar a trajetória para comparar com o tempo em qua a bola estará na posição
-a = 6
-b = 12
-c = dist_real - coordenada_x_próxima
-
-tempo_menor_dist = calcular_bhaskara(a, b, c)
 print("\nTempo que o robo demora para interceptar a bola:", tempo_menor_dist)
 print("\nTempo que o robo espera pela bola:", tempo_correspondente - tempo_menor_dist)
 
-print("\nGraficos da trajetoria robo-bola")
-print(" 1. trajetoria da bola e do robo em um plano 𝑥y\n 2. coordenadas 𝑥 e 𝑦 da posicao da bola e do robo em funcao do tempo\n 3. componentes 𝑣𝑥 e 𝑣𝑦 da velocidade da bola e do robo em funcao do tempo\n 4. componentes ax e ay da aceleracao da e do robo em função do tempo\n 5. distancia relativa entre o robo e a bola com funcao ao tempo ate o instatente da interceptacao")
-op = int(input("Digite o numero do grafico que quer ver: "))
+# definição dos pontos da trajetória do robo:
+posicoes_x_robo = []
+posicoes_y_robo = []
 
-if op == 1:
+ax = (x_bola - x_robo)/dist_real * a
+lista_ax = []
+ay = (y_bola - y_robo)/dist_real * a
+lista_ay = []
 
-    # Criar listas para armazenar as posições do robô
-    #posicoes_x_robo = []
-    #posicoes_y_robo = []
+cont = 0
 
-# Calcular e armazenar as posições do robô ao longo da trajetória
-    #for tempo_atual in t:
-     #   if tempo_atual <= tempo_menor_dist:
-      #      x_robo_atual = x_robo + raio_intercep + v * (tempo_atual - t[0])
-       #     y_robo_atual = y_robo + raio_intercep + v * (tempo_atual - t[0])
-        #    posicoes_x_robo.append(x_robo_atual)
-         #   posicoes_y_robo.append(y_robo_atual)
+while cont < len(tempos_que_passarao):
+    x_agora = x_robo + (ax * (tempos_que_passarao[cont]**2))/2 # uso da fórmula da equação horária da posição para encontrar as posições do robo
+    lista_ax.append(ax)
+    y_agora = y_robo + (ay * (tempos_que_passarao[cont]**2))/2
+    lista_ay.append(ay)
+    posicoes_x_robo.append(x_agora)
+    posicoes_y_robo.append(y_agora)
+    cont += 1
 
-    #plt.figure(figsize=(8, 6))
-    #plt.title('Trajetória da Bola e do Robô em um Plano XY')
+# definição dos pontos da trajetória da bola:
+posbolax = []
+posbolay = []
+cont2 = 0
 
-    # Trajetória da bola
-    #plt.plot(x, y, label='Trajetória da Bola', linestyle='-', color='blue')
+while cont2 < len(tempos_que_passarao):
+    posbolay.append(x[cont2])
+    posbolax.append(y[cont2])
+    cont2 += 1
 
-    # Trajetória do robô
-    #plt.plot(posicoes_x_robo, posicoes_y_robo, label='Trajetória do Robô', linestyle='--', color='red')
+# definição das velocidas vx e vy e ax e ay da bola e do robo 
+vx_bola = []
+vy_bola = []
+vx_robo = []
+vy_robo = []
+cont3 = 0
 
-    #plt.xlabel('Posição X')
-    #plt.ylabel('Posição Y')
+vx_B = [(x[i+1] - x[i]) for i in range(len(x) - 1)]
+vy_B = [(y[i+1] - y[i]) for i in range(len(y) - 1)]
 
-    #plt.ylim(y[0], 5)
+t = 0.02
+
+lista_ax_B = []
+lista_ay_B = []
+
+for i in range(len(tempos_que_passarao)):
+    ax_B = (vx_B[i+1] - vx_B[i]) / t
+    lista_ax_B.append(ax_B)
+    ay_B = (vy_B[i+1] - vy_B[i]) / t
+    lista_ay_B.append(ay_B)
+
+
+while cont3 < len(tempos_que_passarao):
+    # V = Vo + at
+    vx_robo.append(ax * tempos_que_passarao[cont3])
+    vy_robo.append(ay * tempos_que_passarao[cont3])
+
+    vx_bola.append(ax_B * tempos_que_passarao[cont3])
+    vy_bola.append(ay_B * tempos_que_passarao[cont3])
+    cont3 += 1
+
+distancias = []
+cont4 = 0
+
+# definição da distancia relativa entre robo e bola
+while cont4 < len(tempos_que_passarao):
+    x_B = x[cont4]
+    y_B = y[cont4]
+    x_R = posicoes_x_robo[cont4]
+    y_R = posicoes_y_robo[cont4]
+
+    dist = sqrt((x_R - x_B) ** 2 + (y_R - y_B) ** 2)
+    distancias.append(dist)
     
-    #plt.legend()
-    #plt.grid(True)
+    cont4 += 1
 
-    #plt.show()
-    # Criar listas para armazenar as posições do robô
-    posicoes_x_robo = []
-    posicoes_y_robo = []
+# incialização dos gráficos e matplotlib.pyplot
+while True:
+    print("\nGraficos da trajetoria robo-bola")
+    print(" 1. trajetoria da bola e do robo em um plano 𝑥y\n 2. coordenadas 𝑥 e 𝑦 da posicao da bola e do robo em funcao do tempo\n 3. componentes 𝑣𝑥 e 𝑣𝑦 da velocidade da bola e do robo em funcao do tempo\n 4. componentes ax e ay da aceleracao da bola e do robo em função do tempo\n 5. distancia relativa entre o robo e a bola com funcao ao tempo ate o instante da interceptacao\n 0. sair")
+    op = int(input("Digite o numero do grafico que quer ver: "))
 
-    # Calcular e armazenar as posições do robô ao longo da trajetória
-    for tempo_atual in t:
-        if tempo_atual <= tempo_menor_dist:
-            x_robo_atual = x_robo + raio_intercep + v * (tempo_atual - t[0])
-            y_robo_atual = y_robo + raio_intercep + v * (tempo_atual - t[0])
-            posicoes_x_robo.append(x_robo_atual)
-            posicoes_y_robo.append(y_robo_atual)
+    if op == 0:
+        break
 
-    plt.figure(figsize=(8, 6))
-    plt.title('Trajetória da Bola e do Robô em um Plano XY')
+    elif op == 1:
 
-    # Trajetória da bola
-    plt.plot(x, y, label='Trajetória da Bola', linestyle='-',marker='o', color='blue')
+        plt.figure(figsize=(8, 6))
+        plt.title('Trajetória da Bola e do Robô em um Plano XY')
 
-    # Trajetória do robô
-    plt.plot(posicoes_x_robo, posicoes_y_robo, label='Trajetória do Robô', linestyle='--', color='red')
+        plt.plot(x, y, label='Trajetória da Bola', linestyle='-',marker='o', color='blue')
 
-    plt.xlabel('Posição X')
-    plt.ylabel('Posição Y')
+        plt.plot([x_robo, coordenada_x_próxima], [y_robo, coordenada_y_próxima], label='Trajetória do Robô', linestyle='--', color='red')
 
-    plt.ylim(y[0], 5)
-    
-    plt.legend()
-    plt.grid(True)
+        plt.xlabel('Posição X')
+        plt.ylabel('Posição Y')
+        
+        plt.legend()
+        plt.grid(True)
 
-    plt.show()
+        plt.show()
 
+    elif op == 2:
+            
+        plt.figure(figsize=(8, 6))
+        plt.title("Coordenadas X e Y da posição da bola e do robô em função do tempo")
 
-elif op == 2:
-     
-    plt.figure(figsize=(8, 6))
-    plt.title("Coordenadas X e Y da posição da bola e do robô em função do tempo")
+        plt.xlabel('Tempo (s)')
+        plt.ylabel('Valores da posição da bola e do robô (m)')
 
-    plt.xlabel('Tempo (s)')
-    plt.ylabel('Coordenadas xy da posição da bola e do robô')
+        plt.plot(tempos_que_passarao, posbolax, label='Posição X da Bola', linestyle='-', color='lightblue')
+        plt.plot(tempos_que_passarao, posbolay, label='Posição Y da Bola', linestyle='-', color='blue')
 
-    plt.plot(t, x, label='Posição X da Bola', linestyle='-', color='blue')
-    plt.plot(t, y, label='Posição Y da Bola', linestyle='-', color='blue')
-    # falta posição do robo
+        plt.plot(tempos_que_passarao, posicoes_x_robo, label='Posição X do Robô', linestyle='--', color='hotpink')
+        plt.plot(tempos_que_passarao, posicoes_y_robo, label='Posição Y do Robô', linestyle='--', color='pink')
 
-    posicoes_robo = []
+        plt.legend()
+        plt.grid(True)
 
-    # for x in range (len(x)):
+        plt.show()
 
+    elif op == 3:
 
-    plt.legend()
-    plt.grid(True)
+        plt.figure(figsize=(8, 6))
+        plt.title("Componentes vx e vy da posição da bola e do robô em função do tempo")
 
-    plt.show()
+        plt.xlabel('Tempo (s)')
+        plt.ylabel('Valor das velocidades (m/s)')
 
-elif op == 5:
-    plt.figure(figsize=(8, 6))
-    plt.title("Distância relativa entre o robô e a bola em função do tempo")
+        plt.plot(tempos_que_passarao, vx_robo, label='Velocidade em X do Robô', linestyle='-', color='green')
+        plt.plot(tempos_que_passarao, vy_robo, label='Velocidade em Y do Robô', linestyle='-', color='lightgreen')
+        
+        plt.plot(tempos_que_passarao, vx_bola, label='Velocidade em X da Bola', linestyle='--', color='blue')
+        plt.plot(tempos_que_passarao, vy_bola, label='Velocidade em Y da Bola', linestyle='--', color='yellow')
 
-    plt.xlabel('Tempo (s)')
-    plt.ylabel('Distância')
+        plt.legend()
+        plt.grid(True)
 
-    # Trajetória do robô
-    plt.plot([x_robo, x_robo + dist_real], [y_robo, y_robo + dist_real], label='Trajetória do Robô', linestyle='--', color='red')
+        plt.show()
 
-    plt.legend()
-    plt.grid(True)
+    elif op == 4:
 
-    plt.show()
+        plt.figure(figsize=(8, 6))
+        plt.title("Componentes ax e ay da bola e do robô em função do tempo")
+
+        plt.xlabel('Tempo (s)')
+        plt.ylabel('Valor da aceleração (m/s²)')
+
+        plt.plot(tempos_que_passarao, lista_ax, label='Acelerção em X do Robô', linestyle='-', color='green')
+        plt.plot(tempos_que_passarao, lista_ay, label='Aceleração em Y do Robô', linestyle='-', color='lightgreen')
+        
+        plt.plot(tempos_que_passarao, lista_ax_B, label='Aceleração em X da Bola', linestyle='--', color='blue')
+        plt.plot(tempos_que_passarao, lista_ay_B, label='Aceleração em Y da Bola', linestyle='--', color='yellow')
+
+        plt.legend()
+        plt.grid(True)
+
+        plt.show()
+
+    elif op == 5:
+
+        plt.figure(figsize=(8, 6))
+        plt.title("Distância relativa entre o robô e a bola em função do tempo")
+
+        plt.xlabel('Tempo (s)')
+        plt.ylabel('Distância entre o robô e a bola (m)')
+
+        plt.plot(tempos_que_passarao, distancias, label='Distância relativa', linestyle='-', color='blue')
+
+        plt.legend()
+        plt.grid(True)
+
+        plt.show()
